@@ -8,6 +8,32 @@ use itertools::Itertools;
 use midly::{Format, Header, Smf, Timing, Track, TrackEvent, TrackEventKind};
 use midly::MetaMessage::{EndOfTrack, Tempo};
 use midly::MidiMessage::{NoteOff, NoteOn, ProgramChange};
+use midly::num::{u28, u7};
+
+const TICKS_PER_BEAT: u16 = 60;
+const MICROSECONDS_PER_BEAT: u32 = 1_000_000;
+const QUARTER_NOTE: u7 = u7::new(58);
+const HOUR_NOTE: u7 = u7::new(51);
+const QUARTER_TICKS: u28 = u28::new(TICKS_PER_BEAT as u32 * 2);
+const HOUR_TICKS: u28 = u28::new(TICKS_PER_BEAT as u32 * 2);
+const QUARTERS_HOURS_REST_TICKS: u28 = u28::new(TICKS_PER_BEAT as u32);
+const QUARTER_VELOCITY: u7 = u7::new(96);
+const HOUR_VELOCITY: u7 = u7::new(127);
+
+fn note(track: &mut Track, key: u7, vel: u7, delta: u28, on_not_off: bool) -> u64 {
+    track.push(TrackEvent {
+        delta,
+        kind: TrackEventKind::Midi {
+            channel: 1.into(),
+            message: if on_not_off {
+                NoteOn {key, vel}
+            } else {
+                NoteOff {key, vel}
+            }
+        }
+    });
+    delta.as_int().into()
+}
 
 fn main() {
 
@@ -23,13 +49,13 @@ fn main() {
     let mut sf2 = File::open("jeux14.sf2").unwrap();
     let sound_font = Arc::new(SoundFont::new(&mut sf2).unwrap());
 
-    let mut new_midi = Smf::new(Header { format: Format::SingleTrack, timing: Timing::Metrical(128.into()) });
+    let mut new_midi = Smf::new(Header { format: Format::SingleTrack, timing: Timing::Metrical(TICKS_PER_BEAT.into()) });
     let mut track = Track::new();
     track.push(TrackEvent {
         delta: 0.into(),
         kind: TrackEventKind::Meta(
             Tempo(
-                1000_000.into())),
+                MICROSECONDS_PER_BEAT.into())),
     });
     track.push(TrackEvent {
        delta: 0.into(),
@@ -41,46 +67,15 @@ fn main() {
            }
        }
     });
-    track.push(TrackEvent {
-        delta: 0.into(),
-        kind: TrackEventKind::Midi {
-            channel: 1.into(),
-            message: NoteOn {
-                key: 58.into(),
-                vel: 96.into(),
-            }
-        }
-    });
-    track.push(TrackEvent {
-        delta: 128.into(),
-        kind: TrackEventKind::Midi {
-            channel: 1.into(),
-            message: NoteOn {
-                key: 51.into(),
-                vel: 96.into(),
-            }
-        }
-    });
-    track.push(TrackEvent {
-        delta: 256.into(),
-        kind: TrackEventKind::Midi {
-            channel: 1.into(),
-            message: NoteOff {
-                key: 58.into(),
-                vel: 96.into(),
-            }
-        }
-    });
-    track.push(TrackEvent {
-        delta: 256.into(),
-        kind: TrackEventKind::Midi {
-            channel: 1.into(),
-            message: NoteOff {
-                key: 51.into(),
-                vel: 96.into(),
-            }
-        }
-    });
+    let mut duration: u64 = 0;
+    duration += note(&mut track, QUARTER_NOTE, QUARTER_VELOCITY, u28::new(0), true);
+    duration += note(&mut track, QUARTER_NOTE, QUARTER_VELOCITY, QUARTER_TICKS, true);
+    duration += note(&mut track, QUARTER_NOTE, QUARTER_VELOCITY, QUARTER_TICKS, true);
+    duration += note(&mut track, HOUR_NOTE,    HOUR_VELOCITY,    QUARTER_TICKS + QUARTERS_HOURS_REST_TICKS, true);
+    duration += note(&mut track, HOUR_NOTE,    HOUR_VELOCITY,    HOUR_TICKS, true);
+    duration += note(&mut track, HOUR_NOTE,    HOUR_VELOCITY,    HOUR_TICKS, true);
+    duration += note(&mut track, QUARTER_NOTE, QUARTER_VELOCITY, HOUR_TICKS, false);
+    duration += note(&mut track, HOUR_NOTE,    HOUR_VELOCITY,    HOUR_TICKS, false);
 
     track.push(TrackEvent {
         delta: 0.into(),
@@ -90,8 +85,6 @@ fn main() {
     let mut in_memory = Vec::new();
     new_midi.write(&mut in_memory).unwrap();
 
-
-    //eprintln!("in_memory.len() {}", in_memory.len());
 
     let mid = MidiFile::new(&mut in_memory.as_slice()).unwrap();
 
@@ -114,6 +107,7 @@ fn main() {
     })
     .unwrap();
 
-    std::thread::sleep(std::time::Duration::from_secs(10));
+    let estimated_duration_microseconds = duration as f64 / TICKS_PER_BEAT as f64 * MICROSECONDS_PER_BEAT as f64;
+    std::thread::sleep(std::time::Duration::from_micros(estimated_duration_microseconds.round()  as u64));
 
 }
