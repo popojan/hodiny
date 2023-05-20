@@ -15,5 +15,9 @@ midly = "0.5.3"
 opt-level = 0
 
 [profile.release]
-opt-level = 3
+strip = true
+opt-level = "z"
+lto = true
+codegen-units = 1
+panic = "abort"
 
