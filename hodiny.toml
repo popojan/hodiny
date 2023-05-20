@@ -1,0 +1,19 @@
+[tempo]
+ticks_per_beat = 60
+microseconds_per_beat = 1_000_000
+
+[striking]
+kind = 0
+rest = 0
+
+[quarter]
+program = 123
+note = 58
+delta = 120
+velocity = 96
+
+[hour]
+program = 123
+note = 51
+delta = 120
+velocity = 96
