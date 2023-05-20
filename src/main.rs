@@ -43,7 +43,7 @@ fn main() {
     let now = Local::now();
 
     let now_hour = now.hour() % 12;
-    let now_minute = (now.minute() as f64/ 15.0).floor() as u32;
+    let now_minute = (now.minute() as f64 / 15.0).floor() as u32;
 
     let num_hour_strikes = if now_hour == 0 {12} else {now_hour};
     let num_quarter_strikes = if now_minute == 0 {4} else {now_minute};
@@ -51,7 +51,7 @@ fn main() {
     let mut left: Vec<f32> = vec![0_f32; params.channel_sample_count];
     let mut right: Vec<f32> = vec![0_f32; params.channel_sample_count];
 
-    let mut sf2 = File::open("jeux14.sf2").unwrap();
+    let mut sf2 = File::open(config.striking.soundfont).unwrap();
     let sound_font = Arc::new(SoundFont::new(&mut sf2).unwrap());
 
     let mut new_midi = Smf::new(Header {
@@ -99,18 +99,20 @@ fn main() {
             }
         }
     });
+    let hour_ticks = config.hour.delta.into();
     let hour_note = config.hour.note.into();
     let hour_velocity = config.hour.velocity.into();
-    let hour_ticks = config.hour.delta.into();
     let quarters_hours_rest_ticks = config.striking.rest.into();
 
-    for strike in 0 .. num_hour_strikes {
-        let delta_ticks = if strike == 0 {
-            quarter_ticks + quarters_hours_rest_ticks
-        } else {
-            hour_ticks
-        };
-        duration += note(&mut track, hour_note, hour_velocity, delta_ticks, true);
+    if config.striking.kind > 0 || num_quarter_strikes == 4 {
+        for strike in 0..num_hour_strikes {
+            let delta_ticks = if strike == 0 {
+                quarter_ticks + quarters_hours_rest_ticks
+            } else {
+                hour_ticks
+            };
+            duration += note(&mut track, hour_note, hour_velocity, delta_ticks, true);
+        }
     }
     duration += note(&mut track, quarter_note, quarter_velocity, hour_ticks, false);
     duration += note(&mut track, hour_note, hour_velocity, hour_ticks, false);

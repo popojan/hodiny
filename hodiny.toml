@@ -3,6 +3,7 @@ ticks_per_beat = 60
 microseconds_per_beat = 1_000_000
 
 [striking]
+soundfont = "jeux14.sf2"
 kind = 0
 rest = 0
 

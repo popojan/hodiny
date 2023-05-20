@@ -10,6 +10,7 @@ pub struct Config {
 
 #[derive(Deserialize)]
 pub struct Striking {
+    pub soundfont: String,
     pub kind: u8,
     pub rest: u32,
 }
