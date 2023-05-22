@@ -14,6 +14,7 @@ use midly::MidiMessage::{NoteOff, NoteOn, ProgramChange};
 use midly::num::{u28, u7};
 use crate::config::Config;
 use chrono::{Local, Timelike};
+use std::env;
 
 fn note(track: &mut Track, key: u7, vel: u7, delta: u28, on_not_off: bool) -> u64 {
     track.push(TrackEvent {
@@ -169,7 +170,7 @@ fn westminster(mut track: &mut Track, config: &Config) -> u64 {
     }
     let hour_ticks: u32 = config.hour.delta.into();
     if num_quarter_strikes == 4 || config.striking.kind > 2 {
-        let hour_note = config.hour.note.into();
+        let hour_note = u7::new(52);
         let hour_velocity = config.hour.velocity.into();
 
         for strike in 0..num_hour_strikes {
@@ -195,7 +196,23 @@ fn westminster(mut track: &mut Track, config: &Config) -> u64 {
 
 fn main() {
 
-    let config_text = fs::read_to_string("hodiny.toml").unwrap();
+    let config_path = if let Ok(Some(config_path)) = env::args().skip(1).at_most_one() {
+        config_path
+    } else {
+        "hodiny.toml".to_string()
+    };
+    let previous_dir = env::current_dir().ok().unwrap();
+    match env::current_exe() {
+        Ok(mut exe_path) => {
+            exe_path.pop();
+            env::set_current_dir(exe_path).ok();
+        },
+        Err(_e) => return,
+    };
+
+    println!("config [{}]", config_path);
+
+    let config_text = fs::read_to_string(config_path).unwrap();
     let config: Config = toml::from_str(&config_text).unwrap();
 
     let params = OutputDeviceParameters {
@@ -252,4 +269,5 @@ fn main() {
     let estimated_duration_microseconds = duration as f64 / config.tempo.ticks_per_beat as f64 * config.tempo.microseconds_per_beat as f64;
     std::thread::sleep(std::time::Duration::from_micros(estimated_duration_microseconds.round()  as u64));
 
+    env::set_current_dir(previous_dir).ok();
 }
