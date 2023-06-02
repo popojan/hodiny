@@ -1,0 +1,29 @@
+# overall tempo
+[tempo]
+ticks_per_beat = 60
+microseconds_per_beat = 400_000
+
+[striking]
+# soundfont in sf2 format
+soundfont = "jeux14.sf2"
+
+# kind = 0 ... simple (just quarters except full hour)
+# kind = 1 ... full (quarters and hour each quarter)
+# kind = 2 ... Westminster quarters chimes
+kind = 2
+
+rest = 0   # rest between quarter and hour strikes
+
+# quarter strike parameters (also for changes of Westminster chimes)
+[quarter]
+program = 123  # zero-based index of soundfont program
+note = 58      # midi note number
+delta = 120    # midi note duration in ticks
+velocity = 96  # midi note velocity
+
+# hour strike parameters (also for Big Ben full hour strikes)
+[hour]
+program = 123
+note = 51
+delta = 480
+velocity = 96

@@ -210,8 +210,6 @@ fn main() {
         Err(_e) => return,
     };
 
-    println!("config [{}]", config_path);
-
     let config_text = fs::read_to_string(config_path).unwrap();
     let config: Config = toml::from_str(&config_text).unwrap();
 
